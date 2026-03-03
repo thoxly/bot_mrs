@@ -28,11 +28,21 @@ class UsersRepository:
             "UPDATE users SET pseudo = $1, side = $2, status = 'active' WHERE telegram_id = $3",
             (pseudo, side, telegram_id),
         )
-
     async def pseudo_exists(self, pseudo: str) -> bool:
         row = await self.db.fetchone(
             "SELECT 1 as exists_flag FROM users WHERE lower(pseudo) = lower($1) LIMIT 1",
             (pseudo,),
+        )
+        return bool(row)
+
+    async def pseudo_taken_by_other(self, telegram_id: int, pseudo: str) -> bool:
+        row = await self.db.fetchone(
+            (
+                "SELECT 1 as exists_flag FROM users "
+                "WHERE lower(pseudo) = lower($1) AND telegram_id != $2 "
+                "LIMIT 1"
+            ),
+            (pseudo, telegram_id),
         )
         return bool(row)
 

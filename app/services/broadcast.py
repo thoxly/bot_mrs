@@ -1,5 +1,6 @@
 import logging
 from typing import Any
+import html
 
 from aiogram import Bot
 from aiogram.types import InputMediaDocument, InputMediaPhoto, InputMediaVideo
@@ -29,8 +30,10 @@ class BroadcastService:
         payload = text.strip()
 
         if reply_to_code:
-            quote = (reply_quote or "message").strip()[:200]
-            payload = f'Цитата: "{quote}"\n{payload}' if payload else f'Цитата: "{quote}"'
+            raw_quote = (reply_quote or "message").strip()[:200]
+            quote = html.escape(raw_quote)
+            prefix = f"Пересылаемое сообщение: <i>{quote}</i>"
+            payload = f"{prefix}\n{payload}" if payload else prefix
 
         recipients = await self.users_repo.get_active_user_ids(exclude_telegram_id=sender_id)
         outgoing_text = f"{header}\n{payload}".strip()
@@ -131,10 +134,12 @@ class BroadcastService:
         clean_comment = (comment or "").strip()
 
         if reply_to_code:
-            quote = (reply_quote or "message").strip()[:200]
+            raw_quote = (reply_quote or "message").strip()[:200]
+            quote = html.escape(raw_quote)
+            prefix = f"Пересылаемое сообщение: <i>{quote}</i>"
             if clean_comment:
-                return f'{header}\nЦитата: "{quote}"\n{clean_comment}'
-            return f'{header}\nЦитата: "{quote}"'
+                return f"{header}\n{prefix}\n{clean_comment}"
+            return f"{header}\n{prefix}"
 
         if clean_comment:
             return f"{header}\n{clean_comment}"

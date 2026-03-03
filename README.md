@@ -79,6 +79,7 @@ docker compose up --build
 
 - `/start`
 - `/whoami`
+- `/profile`
 
 ### Админ
 
