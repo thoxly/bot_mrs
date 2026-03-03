@@ -11,6 +11,7 @@ class Settings:
     database_url: str
     port: int
     log_level: str
+    webhook_base_url: str
 
 
 def load_settings() -> Settings:
@@ -20,6 +21,7 @@ def load_settings() -> Settings:
     database_url = os.getenv("DATABASE_URL", "").strip()
     port_raw = os.getenv("PORT", "10000").strip()
     log_level = os.getenv("LOG_LEVEL", "INFO").strip().upper()
+    webhook_base_url = os.getenv("WEBHOOK_BASE_URL", "").strip().rstrip("/")
 
     if not bot_token:
         raise ValueError("BOT_TOKEN is required in .env")
@@ -29,6 +31,8 @@ def load_settings() -> Settings:
         raise ValueError("DATABASE_URL is required in .env")
     if not port_raw.isdigit():
         raise ValueError("PORT must be a numeric value in .env")
+    if not webhook_base_url:
+        raise ValueError("WEBHOOK_BASE_URL is required in .env")
 
     return Settings(
         bot_token=bot_token,
@@ -36,4 +40,5 @@ def load_settings() -> Settings:
         database_url=database_url,
         port=int(port_raw),
         log_level=log_level,
+        webhook_base_url=webhook_base_url,
     )

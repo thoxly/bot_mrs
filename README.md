@@ -1,11 +1,11 @@
-# Telegram Anonymous Relay Bot (Polling + Postgres)
+# Telegram Anonymous Relay Bot (Webhook + Postgres)
 
 Минималистичный production-ready бот на `aiogram v3`, который позволяет анонимизированно общаться через личку с ботом.
 
 ## Возможности
 
 - Только личные сообщения с ботом (группы/каналы игнорируются).
-- Long polling + параллельный HTTP health server.
+- Webhook + HTTP health server.
 - Модерация доступа админом: `pending -> setup -> active`, плюс `banned`.
 - Анонимная рассылка всем active-пользователям (кроме отправителя).
 - Поддержка:
@@ -28,7 +28,7 @@
 
 ## Структура
 
-- `app/main.py` — параллельный старт polling + `/health`.
+- `app/main.py` — HTTP сервер с `/health` и webhook для Telegram.
 - `app/config.py` — загрузка `.env`.
 - `app/db.py` — asyncpg pool и инициализация Postgres.
 - `app/repositories/*` — слой данных users/messages.
@@ -54,6 +54,7 @@ ADMIN_ID=ваш_telegram_id
 DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DBNAME?sslmode=require
 PORT=10000
 LOG_LEVEL=INFO
+WEBHOOK_BASE_URL=https://bot-mrs.onrender.com
 ```
 
 ## Локальный запуск
@@ -71,7 +72,7 @@ python -m app.main
 docker compose up --build
 ```
 
-Бот запускается в одном async-процессе: Telegram polling + HTTP сервер с `GET /health`.
+Бот запускается в одном async-процессе: Telegram webhook + HTTP сервер с `GET /health`.
 
 ## Команды
 
@@ -80,6 +81,7 @@ docker compose up --build
 - `/start`
 - `/whoami`
 - `/profile`
+- `/health`
 
 ### Админ
 
@@ -127,7 +129,7 @@ M0008 ↪ M0005 | [VENDOR] Dev1
 - Создайте Web service (нужен внешний URL для `/health`).
 - Build command: `pip install -r requirements.txt`.
 - Start command: `python -m app.main`.
-- Добавьте env vars `BOT_TOKEN`, `ADMIN_ID`, `DATABASE_URL`, `PORT`.
+- Добавьте env vars `BOT_TOKEN`, `ADMIN_ID`, `DATABASE_URL`, `PORT`, `WEBHOOK_BASE_URL`.
 
 #### Anti-sleep для Render Free
 
@@ -150,7 +152,5 @@ M0008 ↪ M0005 | [VENDOR] Dev1
 5. Проверка album (несколько фото/видео/документов одним медиа-групп сообщением).
 
 ## Важно
-
-- Webhook не используется.
 - Endpoint `GET /health` возвращает `200` и `{"status": "ok"}`.
 - Данные хранятся только во внешнем Postgres (без локальных DB-файлов).

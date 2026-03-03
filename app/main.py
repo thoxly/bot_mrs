@@ -1,4 +1,3 @@
-import asyncio
 import logging
 
 from aiogram import Bot, Dispatcher
@@ -6,12 +5,14 @@ from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import ErrorEvent
-from fastapi import FastAPI
+from aiogram.types import Update
+from fastapi import FastAPI, Request
 import uvicorn
 
 from app.config import load_settings
 from app.db import Database
 from app.handlers import admin, chat, setup, start, whoami
+from app.handlers import health as health_cmd
 from app.logging_conf import setup_logging
 from app.repositories.messages_repo import MessagesRepository
 from app.repositories.users_repo import UsersRepository
@@ -46,20 +47,10 @@ async def run_health_server(port: int) -> None:
     await server.serve()
 
 
-async def run() -> None:
-    settings = load_settings()
-    setup_logging(settings.log_level)
-
-    db = Database(settings.database_url)
-    try:
-        await db.init("sql/init.sql")
-    except Exception:
-        logger.exception(
-            "Failed to initialize database; starting health server only (no bot polling)."
-        )
-        await run_health_server(settings.port)
-        return
-
+def build_bot_and_dispatcher(
+    settings,
+    db: Database,
+) -> tuple[Bot, Dispatcher]:
     users_repo = UsersRepository(db)
     messages_repo = MessagesRepository(db)
     broadcast_service = BroadcastService(users_repo)
@@ -82,11 +73,76 @@ async def run() -> None:
     dp.include_router(setup.router)
     dp.include_router(whoami.router)
     dp.include_router(chat.router)
+    dp.include_router(health_cmd.router)
 
     @dp.error()
     async def on_error(event: ErrorEvent) -> bool:
         logger.exception("Unhandled update error: %s", event.exception)
         return True
+
+    return bot, dp
+
+
+def build_webhook_app(
+    bot: Bot,
+    dp: Dispatcher,
+) -> FastAPI:
+    app = FastAPI()
+
+    @app.get("/")
+    async def root() -> dict[str, str]:
+        return {"status": "ok"}
+
+    @app.get("/health")
+    async def health() -> dict[str, str]:
+        return {"status": "ok"}
+
+    @app.post("/telegram/webhook")
+    async def telegram_webhook(request: Request) -> dict[str, bool]:
+        data = await request.json()
+        update = Update.model_validate(data)
+        await dp.feed_update(bot, update)
+        return {"ok": True}
+
+    return app
+
+
+async def run() -> None:
+    settings = load_settings()
+    setup_logging(settings.log_level)
+
+    db = Database(settings.database_url)
+    try:
+        await db.init("sql/init.sql")
+    except Exception:
+        logger.exception(
+            "Failed to initialize database; starting health server only (no bot webhook)."
+        )
+        await run_health_server(settings.port)
+        return
+
+    bot, dp = build_bot_and_dispatcher(settings, db)
+
+    webhook_url = f"{settings.webhook_base_url}/telegram/webhook"
+
+    logger.info("Setting webhook to %s", webhook_url)
+    await bot.set_webhook(webhook_url)
+
+    app = build_webhook_app(bot, dp)
+
+    config = uvicorn.Config(
+        app=app,
+        host="0.0.0.0",
+        port=settings.port,
+        log_level="info",
+    )
+    server = uvicorn.Server(config=config)
+
+    try:
+        await server.serve()
+    finally:
+        await db.close()
+        await bot.session.close()
 
     logger.info("Bot polling and health server are starting...")
     polling_task = asyncio.create_task(dp.start_polling(bot), name="telegram-polling")
@@ -110,6 +166,8 @@ async def run() -> None:
 
 
 def main() -> None:
+    import asyncio
+
     asyncio.run(run())
 
 
