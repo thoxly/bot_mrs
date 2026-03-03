@@ -23,6 +23,22 @@ async def start_handler(
         return
 
     telegram_id = message.from_user.id
+
+    # Администратор не проходит регистрацию и всегда имеет активный доступ
+    if telegram_id == settings.admin_id:
+        user = await users_repo.get_by_id(telegram_id)
+        if not user or user["status"] != "active":
+            username = message.from_user.username or "admin"
+            pseudo = username[:32]
+            await users_repo.create_pending(telegram_id)
+            await users_repo.set_profile(telegram_id, pseudo=pseudo, side="admin")
+
+        await message.answer(
+            "Вы администратор. Ваш доступ активен. "
+            "Используйте админ-команды (/approve, /reject, /ban, /list) или /whoami."
+        )
+        return
+
     user = await users_repo.get_by_id(telegram_id)
 
     if not user:
@@ -48,7 +64,10 @@ async def start_handler(
         return
     if status == "setup":
         await state.set_state(SetupStates.waiting_pseudo)
-        await message.answer("Доступ одобрен. Введите псевдоним (уникальный).")
+        await message.answer(
+            "Доступ одобрен. Введите ник (3–32 символа, латиница/цифры/_). "
+            "Он будет отображаться в сообщениях."
+        )
         return
 
     await message.answer("Ваш доступ пока не одобрен. Ожидайте решения администратора.")

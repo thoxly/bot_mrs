@@ -35,7 +35,10 @@ async def approve_callback(
     await users_repo.set_status(target_id, "setup")
 
     try:
-        await bot.send_message(target_id, "Доступ одобрен. Введите псевдоним (уникальный).")
+        await bot.send_message(
+            target_id,
+            "Доступ одобрен. Для настройки профиля отправьте /start и следуйте инструкциям.",
+        )
     except Exception:
         pass
     await callback.message.edit_text(f"Approved: {target_id}")
@@ -83,7 +86,10 @@ async def approve_command(
     await users_repo.set_status(target_id, "setup")
     await message.answer(f"Пользователь {target_id} переведен в setup.")
     try:
-        await bot.send_message(target_id, "Доступ одобрен. Введите псевдоним (уникальный).")
+        await bot.send_message(
+            target_id,
+            "Доступ одобрен. Для настройки профиля отправьте /start и следуйте инструкциям.",
+        )
     except Exception:
         pass
 

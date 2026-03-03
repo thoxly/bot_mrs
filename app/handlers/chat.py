@@ -106,7 +106,7 @@ async def chat_message_handler(
     if status == "banned":
         return
     if status == "setup":
-        await message.answer("Завершите настройку: введите псевдоним и сторону.")
+        await message.answer("Завершите настройку профиля: отправьте /start и следуйте инструкциям.")
         return
     if status != "active":
         await message.answer("Ваш доступ пока не одобрен.")
