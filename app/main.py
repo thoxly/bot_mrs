@@ -45,7 +45,14 @@ async def run() -> None:
     setup_logging(settings.log_level)
 
     db = Database(settings.database_url)
-    await db.init("sql/init.sql")
+    try:
+        await db.init("sql/init.sql")
+    except Exception:
+        logger.exception(
+            "Failed to initialize database; starting health server only (no bot polling)."
+        )
+        await run_health_server(settings.port)
+        return
 
     users_repo = UsersRepository(db)
     messages_repo = MessagesRepository(db)
