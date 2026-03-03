@@ -32,11 +32,10 @@ async def start_handler(
             chat_id=settings.admin_id,
             text=(
                 "Новый пользователь запросил доступ:\n"
-                f"telegram_id: `{telegram_id}`\n"
+                f"telegram_id: {telegram_id}\n"
                 f"username: {username}"
             ),
             reply_markup=approval_keyboard(telegram_id),
-            parse_mode="Markdown",
         )
         await message.answer("Заявка отправлена администратору. Ожидайте одобрения.")
         return
