@@ -3,6 +3,7 @@ import logging
 
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
+from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import ErrorEvent
 from fastapi import FastAPI
@@ -64,7 +65,10 @@ async def run() -> None:
     broadcast_service = BroadcastService(users_repo)
     media_group_buffer = MediaGroupBuffer(wait_seconds=1.5)
 
-    bot = Bot(token=settings.bot_token, parse_mode=ParseMode.HTML)
+    bot = Bot(
+        token=settings.bot_token,
+        default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+    )
     dp = Dispatcher(storage=MemoryStorage())
 
     dp["settings"] = settings
