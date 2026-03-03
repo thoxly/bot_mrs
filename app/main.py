@@ -22,6 +22,10 @@ logger = logging.getLogger(__name__)
 def build_health_app() -> FastAPI:
     app = FastAPI()
 
+    @app.get("/")
+    async def root() -> dict[str, str]:
+        return {"status": "ok"}
+
     @app.get("/health")
     async def health() -> dict[str, str]:
         return {"status": "ok"}
