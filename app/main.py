@@ -72,8 +72,8 @@ def build_bot_and_dispatcher(
     dp.include_router(start.router)
     dp.include_router(setup.router)
     dp.include_router(whoami.router)
+    dp.include_router(health_cmd.router)  # до chat, иначе chat перехватит /health
     dp.include_router(chat.router)
-    dp.include_router(health_cmd.router)
 
     @dp.error()
     async def on_error(event: ErrorEvent) -> bool:
